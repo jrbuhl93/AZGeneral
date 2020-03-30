@@ -10,7 +10,7 @@ from connect4.pytorch.NNet import NNetWrapper as NNet
 import numpy as np
 from utils import *
 
-human_vs_cpu = False
+human_vs_cpu = True
 
 g = Connect4Game()
 
@@ -41,4 +41,4 @@ else:
 
 arena = Arena.Arena(n1p, player2, g, display=Connect4Game.display)
 
-print(arena.playGames(10, verbose=True))
+print(arena.playGames(2, verbose=True))
