@@ -31,6 +31,7 @@ class Arena():
             or
                 draw result returned from the game that is neither 1, -1, nor 0.
         """
+
         players = [self.player2, None, self.player1]
         curPlayer = 1
         board = self.game.getInitBoard()

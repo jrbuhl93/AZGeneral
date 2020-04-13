@@ -28,7 +28,10 @@ class NNetWrapper(NeuralNet):
         self.action_size = game.getActionSize()
 
         if args.cuda:
+            print("Cuda is avialable")
             self.nnet.cuda()
+        else:
+            print(("Cuda not available"))
 
     def train(self, examples):
         """

@@ -7,17 +7,19 @@ import time, os, sys
 from pickle import Pickler, Unpickler
 from random import shuffle
 
+from connect4.tensorflow_v2.NNet import NNetWrapper as nn
+
 class Coach():
     """
     This class executes the self-play + learning. It uses the functions defined
     in Game and NeuralNet. args are specified in main.py.
     """
-    def __init__(self, game, nnet, args):
+    def __init__(self, game, args):
         self.game = game
-        self.nnet = nnet
-        self.pnet = self.nnet.__class__(self.game)  # the competitor network
+        # self.nnet = nnet
+        # self.pnet = self.nnet.__class__(self.game)  # the competitor network
         self.args = args
-        self.mcts = MCTS(self.game, self.nnet, self.args)
+        # self.mcts = MCTS(self.game, self.nnet, self.args)
         self.trainExamplesHistory = []    # history of examples from args.numItersForTrainExamplesHistory latest iterations
         self.skipFirstSelfPlay = False    # can be overriden in loadTrainExamples()
 
@@ -70,6 +72,9 @@ class Coach():
         """
 
         for i in range(1, self.args.numIters+1):
+            nnet = nn(self.game)
+            nnet.load_checkpoint(folder=self.args.checkpoint, filename=self.args.checkpoint_filename)
+
             # bookkeeping
             print('------ITER ' + str(i) + '------')
             # examples of the iteration
@@ -81,7 +86,7 @@ class Coach():
                 end = time.time()
     
                 for eps in range(self.args.numEps):
-                    self.mcts = MCTS(self.game, self.nnet, self.args)   # reset search tree
+                    self.mcts = MCTS(self.game, nnet, self.args)   # reset search tree
                     iterationTrainExamples += self.executeEpisode()
     
                     # bookkeeping + plot progress
@@ -109,12 +114,13 @@ class Coach():
             shuffle(trainExamples)
 
             # training new network, keeping a copy of the old one
-            self.nnet.save_checkpoint(folder=self.args.checkpoint, filename='temp.pth.tar')
-            self.pnet.load_checkpoint(folder=self.args.checkpoint, filename='temp.pth.tar')
-            pmcts = MCTS(self.game, self.pnet, self.args)
+            nnet.save_checkpoint(folder=self.args.checkpoint, filename='temp')
+            pnet = nn(self.game)
+            pnet.load_checkpoint(folder=self.args.checkpoint, filename='temp')
+            pmcts = MCTS(self.game, pnet, self.args)
             
-            self.nnet.train(trainExamples)
-            nmcts = MCTS(self.game, self.nnet, self.args)
+            nnet.train(trainExamples)
+            nmcts = MCTS(self.game, nnet, self.args)
 
             print('PITTING AGAINST PREVIOUS VERSION')
             arena = Arena(lambda x: np.argmax(pmcts.getActionProb(x, temp=0)),
@@ -124,14 +130,15 @@ class Coach():
             print('NEW/PREV WINS : %d / %d ; DRAWS : %d' % (nwins, pwins, draws))
             if pwins+nwins == 0 or float(nwins)/(pwins+nwins) < self.args.updateThreshold:
                 print('REJECTING NEW MODEL')
-                self.nnet.load_checkpoint(folder=self.args.checkpoint, filename='temp.pth.tar')
+                self.args.checkpoint_filename = 'temp'
             else:
                 print('ACCEPTING NEW MODEL')
-                self.nnet.save_checkpoint(folder=self.args.checkpoint, filename=self.getCheckpointFile(i))
-                self.nnet.save_checkpoint(folder=self.args.checkpoint, filename='best.pth.tar')    
+                nnet.save_checkpoint(folder=self.args.checkpoint, filename=self.getCheckpointFile(i))
+                nnet.save_checkpoint(folder=self.args.checkpoint, filename='best')
+                self.args.checkpoint_filename = 'best'    
 
     def getCheckpointFile(self, iteration):
-        return 'checkpoint_' + str(iteration) + '.pth.tar'
+        return 'checkpoint_' + str(iteration)
 
     def saveTrainExamples(self, iteration):
         folder = self.args.checkpoint

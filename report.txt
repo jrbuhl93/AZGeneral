@@ -1,0 +1,61 @@
+TensorFlow 2.0 Upgrade Script
+-----------------------------
+Converted 3 files
+Detected 1 issues that require attention
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+File: connect4/tensorflow/NNet.py
+--------------------------------------------------------------------------------
+connect4/tensorflow/NNet.py:115:12: WARNING: *.save requires manual check. (This warning is only applicable if the code saves a tf.Keras model) Keras model.save now saves to the Tensorflow SavedModel format by default, instead of HDF5. To continue saving to HDF5, add the argument save_format='h5' to the save() function.
+================================================================================
+Detailed log follows:
+
+================================================================================
+================================================================================
+Input tree: 'connect4/tensorflow'
+================================================================================
+--------------------------------------------------------------------------------
+Processing file 'connect4/tensorflow/__init__.py'
+ outputting to 'connect4/tensorflow_v2/__init__.py'
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Processing file 'connect4/tensorflow/NNet.py'
+ outputting to 'connect4/tensorflow_v2/NNet.py'
+--------------------------------------------------------------------------------
+
+31:20: INFO: Renamed 'tf.Session' to 'tf.compat.v1.Session'
+33:13: INFO: Renamed 'tf.Session' to 'tf.compat.v1.Session'
+34:26: INFO: Renamed 'tf.global_variables_initializer' to 'tf.compat.v1.global_variables_initializer'
+35:22: INFO: Renamed 'tf.variables_initializer' to 'tf.compat.v1.variables_initializer'
+113:25: INFO: Renamed 'tf.train.Saver' to 'tf.compat.v1.train.Saver'
+115:12: WARNING: *.save requires manual check. (This warning is only applicable if the code saves a tf.Keras model) Keras model.save now saves to the Tensorflow SavedModel format by default, instead of HDF5. To continue saving to HDF5, add the argument save_format='h5' to the save() function.
+122:25: INFO: Renamed 'tf.train.Saver' to 'tf.compat.v1.train.Saver'
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+Processing file 'connect4/tensorflow/Connect4NNet.py'
+ outputting to 'connect4/tensorflow_v2/Connect4NNet.py'
+--------------------------------------------------------------------------------
+
+19:29: INFO: Renamed 'tf.layers.batch_normalization' to 'tf.compat.v1.layers.batch_normalization'
+20:18: INFO: Renamed 'tf.layers.dropout' to 'tf.compat.v1.layers.dropout'
+21:16: INFO: Renamed 'tf.layers.dense' to 'tf.compat.v1.layers.dense'
+26:32: INFO: Renamed 'tf.placeholder' to 'tf.compat.v1.placeholder'
+27:27: INFO: Renamed 'tf.placeholder' to 'tf.compat.v1.placeholder'
+28:30: INFO: Renamed 'tf.placeholder' to 'tf.compat.v1.placeholder'
+45:15: INFO: Renamed 'tf.layers.conv2d' to 'tf.compat.v1.layers.conv2d'
+48:26: INFO: Renamed 'tf.placeholder' to 'tf.compat.v1.placeholder'
+49:25: INFO: Renamed 'tf.placeholder' to 'tf.compat.v1.placeholder'
+50:23: INFO: tf.losses.softmax_cross_entropy requires manual check. tf.losses have been replaced with object oriented versions in TF 2.0 and after. The loss function calls have been converted to compat.v1 for backward compatibility. Please update these calls to the TF 2.0 versions.
+50:23: INFO: Renamed 'tf.losses.softmax_cross_entropy' to 'tf.compat.v1.losses.softmax_cross_entropy'
+51:22: INFO: tf.losses.mean_squared_error requires manual check. tf.losses have been replaced with object oriented versions in TF 2.0 and after. The loss function calls have been converted to compat.v1 for backward compatibility. Please update these calls to the TF 2.0 versions.
+51:22: INFO: Renamed 'tf.losses.mean_squared_error' to 'tf.compat.v1.losses.mean_squared_error'
+53:21: INFO: Renamed 'tf.get_collection' to 'tf.compat.v1.get_collection'
+53:39: INFO: Renamed 'tf.GraphKeys' to 'tf.compat.v1.GraphKeys'
+55:30: INFO: Renamed 'tf.train.AdamOptimizer' to 'tf.compat.v1.train.AdamOptimizer'
+--------------------------------------------------------------------------------
+
