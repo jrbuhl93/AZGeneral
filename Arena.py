@@ -2,6 +2,7 @@ import numpy as np
 from pytorch_classification.utils import Bar, AverageMeter
 import time
 
+
 class Arena():
     """
     An Arena class where any 2 agents can be pit against each other.
@@ -76,6 +77,7 @@ class Arena():
         oneWon = 0
         twoWon = 0
         draws = 0
+
         for _ in range(num):
             gameResult = self.playGame(verbose=verbose)
             if gameResult==1:

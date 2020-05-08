@@ -10,7 +10,7 @@ class Board():
         # Create the empty board array
         self.pieces = [None]*self.n
         for i in range(self.n):
-            self.pieces[i] = [[0,0,0,0, 0,0,0,0,0]]*self.n
+            self.pieces[i] = [[0,0,0,0, 0,0,0,0,0]]*self.n  # 
 
     # add [][] indexer syntax to the Board
     def __getitem__(self, index): 

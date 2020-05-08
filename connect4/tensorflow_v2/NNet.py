@@ -38,6 +38,7 @@ class NNetWrapper(NeuralNet):
             batch_time = AverageMeter()
             pi_losses = AverageMeter()
             v_losses = AverageMeter()
+            l2_losses = AverageMeter()
             end = time.time()
 
             bar = Bar('Training Net', max=int(len(examples) / args.batch_size))
@@ -47,23 +48,24 @@ class NNetWrapper(NeuralNet):
                 sample_ids = np.random.randint(len(examples), size=args.batch_size)
                 boards, pis, vs = list(zip(*[examples[i] for i in sample_ids]))
                 boards = tf.convert_to_tensor(boards, dtype=tf.float32)
-                # boards = tf.Variable(np.array(boards))
                 target_pis = tf.Variable(np.array(pis))
                 target_vs = tf.Variable(np.array(vs).astype(np.float32))
                 # measure data loading time
                 data_time.update(time.time() - end)
 
                 # record loss
-                pi_loss, v_loss = self.train_step(boards, target_pis, target_vs)
-                pi_losses.update(pi_loss, tf.cast(tf.size(boards), dtype=tf.float32))
-                v_losses.update(v_loss, tf.cast(tf.size(boards), dtype=tf.float32))
+                pi_loss, v_loss, l2_loss = self.train_step(boards, target_pis, target_vs)
+                board_count = tf.cast(tf.size(boards), dtype=tf.float32)
+                pi_losses.update(pi_loss, board_count)
+                v_losses.update(v_loss, board_count)
+                l2_losses.update(l2_loss, board_count)
                 # measure elapsed time
                 batch_time.update(time.time() - end)
                 end = time.time()
                 batch_idx += 1
 
                 # plot progress
-                bar.suffix  = '({batch}/{size}) Data: {data:.3f}s | Batch: {bt:.3f}s | Total: {total:} | ETA: {eta:} | Loss_pi: {lpi:.4f} | Loss_v: {lv:.3f}'.format(
+                bar.suffix  = '({batch}/{size}) Data: {data:.3f}s | Batch: {bt:.3f}s | Total: {total:} | ETA: {eta:} | Loss_pi: {lpi:.4f} | Loss_v: {lv:.3f} | Loss_l2 {ll2:.3f}'.format(
                             batch=batch_idx,
                             size=int(len(examples) / args.batch_size),
                             data=data_time.avg,
@@ -72,6 +74,7 @@ class NNetWrapper(NeuralNet):
                             eta=bar.eta_td,
                             lpi=pi_losses.avg,
                             lv=v_losses.avg,
+                            ll2=l2_losses.avg,
                             )
                 bar.next()
             bar.finish()           
@@ -83,13 +86,14 @@ class NNetWrapper(NeuralNet):
             out_pi, out_v = self.nnet(boards, training=True)
             l_pi = tf.keras.losses.CategoricalCrossentropy(from_logits=True)(target_pis, out_pi)
             l_v = tf.keras.losses.MeanSquaredError()(target_vs, out_v)
-            total_loss = l_pi + l_v
+            l_l2 = tf.add_n(self.nnet.losses)
+            total_loss = l_pi + l_v + l_l2
 
         # compute gradient and do SGD step
         gradients = tape.gradient(total_loss, self.nnet.trainable_variables)
         self.optimizer.apply_gradients(zip(gradients, self.nnet.trainable_variables))
 
-        return l_pi, l_v
+        return l_pi, l_v, l_l2
 
     @tf.function
     def predict(self, board):
