@@ -7,7 +7,7 @@ import time, os, sys
 from pickle import Pickler, Unpickler
 from random import shuffle
 
-from connect4.tensorflow_v2.NNet import NNetWrapper as nn
+from connect4.tensorflow_resnet.NNet import NNetWrapper as nn
 
 import ray
 from connect4.Connect4Game import Connect4Game
@@ -44,15 +44,15 @@ class Coach():
                 iterationTrainExamples = deque([], maxlen=self.args.maxlenOfQueue)
     
                 eps_time = AverageMeter()
-                bar = Bar('Self Play', max=int(self.args.numEps/6))
+                bar = Bar('Self Play', max=int(self.args.numEps/2))
                 end = time.time()
                 eps = 0
 
                 if not ray.is_initialized():
-                    ray.init(num_cpus=6)
+                    ray.init(num_cpus=2)
 
-                for _ in range(int(self.args.numEps/6)):
-                    epsObjects = [executeEpisode.remote(iteration=i, load_model=self.args.load_model, checkpoint=self.args.checkpoint, checkpoint_filename=self.args.checkpoint_filename, numMCTSSims=self.args.numMCTSSims, cpuct=self.args.cpuct, tempThreshold=self.args.tempThreshold) for _ in range(6)]
+                for _ in range(int(self.args.numEps/2)):
+                    epsObjects = [executeEpisode.remote(iteration=i, load_model=self.args.load_model, checkpoint=self.args.checkpoint, checkpoint_filename=self.args.checkpoint_filename, numMCTSSims=self.args.numMCTSSims, cpuct=self.args.cpuct, dirichletAlpha=self.args.dirichletAlpha, tempThreshold=self.args.tempThreshold) for _ in range(2)]
                     epsResults = ray.get(epsObjects)
 
                     for epsResult in epsResults:
@@ -60,22 +60,11 @@ class Coach():
 
                     eps_time.update(time.time() - end)
                     end = time.time()
-                    eps += 6
+                    eps += 2
 
                     bar.suffix  = '({eps}/{maxeps}) Eps Time: {et:.3f}s | Total: {total:} | ETA: {eta:}'.format(eps=eps, maxeps=self.args.numEps, et=eps_time.avg,
                                                                                                                total=bar.elapsed_td, eta=bar.eta_td)
                     bar.next()
-    
-                # for eps in range(self.args.numEps):
-                #     # self.mcts = MCTS(self.game, nnet, self.args)   # reset search tree
-                #     iterationTrainExamples += self.executeEpisode(MCTS(self.game, nnet, self.args))
-    
-                #     # bookkeeping + plot progress
-                #     eps_time.update(time.time() - end)
-                #     end = time.time()
-                #     bar.suffix  = '({eps}/{maxeps}) Eps Time: {et:.3f}s | Total: {total:} | ETA: {eta:}'.format(eps=eps+1, maxeps=self.args.numEps, et=eps_time.avg,
-                #                                                                                                total=bar.elapsed_td, eta=bar.eta_td)
-                #     bar.next()
 
                 bar.finish()
                 ray.shutdown()
@@ -114,7 +103,7 @@ class Coach():
             pwins, nwins, draws = arena.playGames(self.args.arenaCompare, verbose=True)
 
             print('NEW/PREV WINS : %d / %d ; DRAWS : %d' % (nwins, pwins, draws))
-            if pwins+nwins != 0 and float(nwins)/(pwins+nwins) < self.args.updateThreshold:
+            if pwins+nwins == 0 or float(nwins)/(pwins+nwins) < self.args.updateThreshold:
                 print('REJECTING NEW MODEL')
                 self.args.checkpoint_filename = 'temp'
             else:
@@ -152,7 +141,7 @@ class Coach():
             self.skipFirstSelfPlay = True 
 
 @ray.remote
-def executeEpisode(iteration, load_model, checkpoint, checkpoint_filename, numMCTSSims, cpuct, tempThreshold):
+def executeEpisode(iteration, load_model, checkpoint, checkpoint_filename, numMCTSSims, cpuct, dirichletAlpha, tempThreshold):
     """
     This function executes one episode of self-play, starting with player 1.
     As the game is played, each turn is added as a training example to
@@ -175,8 +164,8 @@ def executeEpisode(iteration, load_model, checkpoint, checkpoint_filename, numMC
         nnet.load_checkpoint(folder=checkpoint, filename=checkpoint_filename)
 
 
-    mcts_args = dotdict({'numMCTSSims': numMCTSSims, 'cpuct':cpuct})
-    mcts = MCTS(game, nnet, mcts_args)
+    mcts_args = dotdict({'numMCTSSims': numMCTSSims, 'cpuct':cpuct, 'dirichletAlpha': dirichletAlpha})
+    mcts = MCTS(game, nnet, mcts_args, dirichlet_noise=True)
 
     trainExamples = []
     board = game.getInitBoard()
@@ -185,6 +174,7 @@ def executeEpisode(iteration, load_model, checkpoint, checkpoint_filename, numMC
 
     while True:
         episodeStep += 1
+        board = game.getRandomSymmetry(board)
         canonicalBoard = game.getCanonicalForm(board,curPlayer)
         temp = int(episodeStep < tempThreshold)
 

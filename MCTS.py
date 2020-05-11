@@ -1,5 +1,6 @@
 import math
 import numpy as np
+import tensorflow as tf
 EPS = 1e-8
 
 class MCTS():
@@ -7,7 +8,7 @@ class MCTS():
     This class handles the MCTS tree.
     """
 
-    def __init__(self, game, nnet, args, self_play=False, verbose=False):
+    def __init__(self, game, nnet, args, dirichlet_noise=False, verbose=False):
         self.game = game
         self.nnet = nnet
         self.args = args
@@ -19,7 +20,7 @@ class MCTS():
         self.Es = {}        # stores game.getGameEnded ended for board s
         self.Vs = {}        # stores game.getValidMoves for board s
 
-        self.self_play = self_play
+        self.dirichlet_noise = dirichlet_noise
         self.verbose = verbose
 
     def getActionProb(self, canonicalBoard, temp=1):
@@ -33,7 +34,8 @@ class MCTS():
         s = self.game.stringRepresentation(canonicalBoard)
 
         for i in range(self.args.numMCTSSims):
-            self.search(canonicalBoard, dir_noise=self.self_play)
+            dir_noise = (i == 0 and self.dirichlet_noise)
+            self.search(canonicalBoard, dirichlet_noise=dir_noise)
 
         if self.verbose:
             print(f'NNet policy: {self.Ps[s]}')
@@ -68,7 +70,7 @@ class MCTS():
         probs = [x/counts_sum for x in counts]
         return probs
 
-    def search(self, canonicalBoard, dir_noise=False):
+    def search(self, canonicalBoard, dirichlet_noise=False):
         """
         This function performs one iteration of MCTS. It is recursively called
         till a leaf node is found. The action chosen at each node is one that
@@ -95,11 +97,13 @@ class MCTS():
 
         if s not in self.Ps:
             # leaf node
-            self.Ps[s], v = self.nnet.predict(canonicalBoard)
-            if dir_noise:
-                self.Ps[s] = (0.75 * self.Ps[s]) + (0.25 * np.random.dirichlet([1.4] * len(self.Ps[s])))
+            boardInput = self.game.getBoardInput(canonicalBoard)
+            self.Ps[s], v = self.nnet.predict(boardInput)
+            self.Ps[s] = np.array(self.Ps[s])
             valids = self.game.getValidMoves(canonicalBoard, 1)
             self.Ps[s] = self.Ps[s]*valids      # masking invalid moves
+            if self.dirichlet_noise:
+                self.applyDirNoise(s, valids)
             sum_Ps_s = np.sum(self.Ps[s])
             if sum_Ps_s > 0:
                 self.Ps[s] /= sum_Ps_s    # renormalize
@@ -117,6 +121,10 @@ class MCTS():
             return -v
 
         valids = self.Vs[s]
+        if self.dirichlet_noise:
+            self.applyDirNoise(s, valids)
+            sum_Ps_s = np.sum(self.Ps[s])
+            self.Ps[s] /= sum_Ps_s      # renormalize
         cur_best = -float('inf')
         best_act = -1
 
@@ -136,7 +144,7 @@ class MCTS():
         next_s, next_player = self.game.getNextState(canonicalBoard, 1, a)
         next_s = self.game.getCanonicalForm(next_s, next_player)
 
-        v = self.search(next_s, dir_noise=dir_noise)
+        v = self.search(next_s, dirichlet_noise=dirichlet_noise)
 
         if (s,a) in self.Qsa:
             self.Qsa[(s,a)] = (self.Nsa[(s,a)]*self.Qsa[(s,a)] + v)/(self.Nsa[(s,a)]+1)
@@ -148,3 +156,11 @@ class MCTS():
 
         self.Ns[s] += 1
         return -v
+
+    def applyDirNoise(self, s, valids):
+        dir_values = np.random.dirichlet([self.args.dirichletAlpha] * np.count_nonzero(valids))
+        dir_idx = 0
+        for idx in range(len(self.Ps[s])):
+            if self.Ps[s][idx]:
+                self.Ps[s][idx] = (0.75 * self.Ps[s][idx]) + (0.25 * dir_values[dir_idx])
+                dir_idx += 1

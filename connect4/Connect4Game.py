@@ -55,9 +55,23 @@ class Connect4Game(Game):
         # Flip player from 1 to -1
         return board * player
 
+    def getBoardInput(self, board):
+        network_input = np.zeros([len(board), len(board[0]), 2])
+        for m in range(len(board)):
+            for n in range(len(board[m])):
+                if board[m][n] == 1:
+                    network_input[m][n][0] = 1
+                elif board[m][n] == -1:
+                    network_input[m][n][1] = 1
+        return network_input
+
     def getSymmetries(self, board, pi):
         """Board is left/right board symmetric"""
         return [(board, pi), (board[:, ::-1], pi[::-1])]
+
+    def getRandomSymmetry(self, board):
+        idx = np.random.choice(2,1)
+        return [board, board[:, ::-1]][idx[0]]
 
     def stringRepresentation(self, board):
         return board.tostring()
