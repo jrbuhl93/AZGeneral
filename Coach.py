@@ -44,15 +44,17 @@ class Coach():
                 iterationTrainExamples = deque([], maxlen=self.args.maxlenOfQueue)
     
                 eps_time = AverageMeter()
-                bar = Bar('Self Play', max=int(self.args.numEps/2))
+                bar = Bar('Self Play', max=int(self.args.numEps/4))
                 end = time.time()
                 eps = 0
 
                 if not ray.is_initialized():
-                    ray.init(num_cpus=2)
+                    ray.init(num_cpus=4)
 
-                for _ in range(int(self.args.numEps/2)):
-                    epsObjects = [executeEpisode.remote(iteration=i, load_model=self.args.load_model, checkpoint=self.args.checkpoint, checkpoint_filename=self.args.checkpoint_filename, numMCTSSims=self.args.numMCTSSims, cpuct=self.args.cpuct, dirichletAlpha=self.args.dirichletAlpha, tempThreshold=self.args.tempThreshold) for _ in range(2)]
+                for eps_i in range(1, int(self.args.numEps/4) + 1):
+                    if not ray.is_initialized():
+                        ray.init(num_cpus=4)
+                    epsObjects = [executeEpisode.remote(iteration=i, load_model=self.args.load_model, checkpoint=self.args.checkpoint, checkpoint_filename=self.args.checkpoint_filename, numMCTSSims=self.args.numMCTSSims, cpuct=self.args.cpuct, dirichletAlpha=self.args.dirichletAlpha, tempThreshold=self.args.tempThreshold) for _ in range(4)]
                     epsResults = ray.get(epsObjects)
 
                     for epsResult in epsResults:
@@ -60,14 +62,16 @@ class Coach():
 
                     eps_time.update(time.time() - end)
                     end = time.time()
-                    eps += 2
+                    eps += 4
 
                     bar.suffix  = '({eps}/{maxeps}) Eps Time: {et:.3f}s | Total: {total:} | ETA: {eta:}'.format(eps=eps, maxeps=self.args.numEps, et=eps_time.avg,
                                                                                                                total=bar.elapsed_td, eta=bar.eta_td)
                     bar.next()
 
+                    if (eps_i % 5) == 0:
+                        ray.shutdown()
+
                 bar.finish()
-                ray.shutdown()
 
                 # save the iteration examples to the history 
                 self.trainExamplesHistory.append(iterationTrainExamples)
@@ -89,6 +93,8 @@ class Coach():
             nnet = nn(self.game)
             if self.args.load_model or i>1:
                 nnet.load_checkpoint(folder=self.args.checkpoint, filename=self.args.checkpoint_filename)
+            else:
+                nnet.predict(self.game.getBoardInput(self.game.getInitBoard()))
             nnet.save_checkpoint(folder=self.args.checkpoint, filename='temp')
             pnet = nn(self.game)
             pnet.load_checkpoint(folder=self.args.checkpoint, filename='temp')

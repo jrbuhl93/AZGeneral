@@ -67,7 +67,7 @@ class Connect4Game(Game):
 
     def getSymmetries(self, board, pi):
         """Board is left/right board symmetric"""
-        return [(board, pi), (board[:, ::-1], pi[::-1])]
+        return [(self.getBoardInput(board), pi), (self.getBoardInput(board[:, ::-1]), pi[::-1])]
 
     def getRandomSymmetry(self, board):
         idx = np.random.choice(2,1)

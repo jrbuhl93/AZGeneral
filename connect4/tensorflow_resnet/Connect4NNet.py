@@ -20,8 +20,6 @@ class Connect4NNet(Model):
         self.residualBlock4 = ResidualBlock(args)
         self.residualBlock5 = ResidualBlock(args)
         self.residualBlock6 = ResidualBlock(args)
-        self.residualBlock7 = ResidualBlock(args)
-        self.residualBlock8 = ResidualBlock(args)
 
         self.convPolicy = Conv2D(2, 1, strides=1, padding='same', kernel_regularizer=regularizers.l2(.0001))
         self.bnPolicy = BatchNormalization(axis=3)
@@ -35,7 +33,7 @@ class Connect4NNet(Model):
     def call(self, s, training=False):
         #   s: batch_size x board_x x board_y
 
-        #   batch_size x board_x x board_y x 1
+        #   batch_size x board_x x board_y x 2
         s = tf.reshape(s, shape=(-1, self.board_x, self.board_y, 2))
 
         s = ReLU()(self.bnInput(self.convInput(s), training))
@@ -46,8 +44,6 @@ class Connect4NNet(Model):
         s = self.residualBlock4(s, training=training)
         s = self.residualBlock5(s, training=training)
         s = self.residualBlock6(s, training=training)
-        s = self.residualBlock7(s, training=training)
-        s = self.residualBlock8(s, training=training)
 
         pi = ReLU()(self.bnPolicy(self.convPolicy(s), training=training))
         pi = tf.reshape(pi, shape=(-1, 2 * (self.board_x) * (self.board_y)))
