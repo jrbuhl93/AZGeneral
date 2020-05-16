@@ -102,7 +102,7 @@ class MCTS():
             self.Ps[s] = np.array(self.Ps[s])
             valids = self.game.getValidMoves(canonicalBoard, 1)
             self.Ps[s] = self.Ps[s]*valids      # masking invalid moves
-            if self.dirichlet_noise:
+            if dirichlet_noise:
                 self.applyDirNoise(s, valids)
             sum_Ps_s = np.sum(self.Ps[s])
             if sum_Ps_s > 0:
@@ -121,7 +121,7 @@ class MCTS():
             return -v
 
         valids = self.Vs[s]
-        if self.dirichlet_noise:
+        if dirichlet_noise:
             self.applyDirNoise(s, valids)
             sum_Ps_s = np.sum(self.Ps[s])
             self.Ps[s] /= sum_Ps_s      # renormalize
