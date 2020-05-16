@@ -144,7 +144,7 @@ class Coach():
                 self.trainExamplesHistory = Unpickler(f).load()
             f.closed
             # examples based on the model were already collected (loaded)
-            self.skipFirstSelfPlay = True 
+            # self.skipFirstSelfPlay = True 
 
 @ray.remote
 def executeEpisode(iteration, load_model, checkpoint, checkpoint_filename, numMCTSSims, cpuct, dirichletAlpha, tempThreshold):
