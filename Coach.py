@@ -7,10 +7,10 @@ import time, os, sys
 from pickle import Pickler, Unpickler
 from random import shuffle
 
-from connect4.tensorflow_resnet.NNet import NNetWrapper as nn
+from santorini.tensorflow.NNet import NNetWrapper as nn
 
 import ray
-from connect4.Connect4Game import Connect4Game
+from santorini import SantoriniGame
 from utils import *
 
 class Coach():
