@@ -10,7 +10,7 @@ from random import shuffle
 from santorini.tensorflow.NNet import NNetWrapper as nn
 
 import ray
-from santorini import SantoriniGame
+from santorini.SantoriniGame  import SantoriniGame
 from utils import *
 
 class Coach():
@@ -163,7 +163,7 @@ def executeEpisode(iteration, load_model, checkpoint, checkpoint_filename, numMC
                         pi is the MCTS informed policy vector, v is +1 if
                         the player eventually won the game, else -1.
     """
-    game = Connect4Game()
+    game = SantoriniGame()
 
     nnet = nn(game)
     if load_model or iteration>1:

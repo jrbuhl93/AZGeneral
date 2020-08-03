@@ -23,14 +23,13 @@ class SantoriniGame(Game):
     def getActionSize(self):
         return (self._board.n * self._board.n) + 1
 
+    def getBoardSize(self):
+        return (self._board.n, self._board.n)
+
     def getNextState(self, board, player, action):
         b = Board(len(board))
         b.pieces = np.copy(board)
         move = (int(action/b.n), action%b.n)
-
-        print(f'Player: {player}')
-        print(f'Game state: {self.game_state}')
-        print(f'Mover: {move}')
 
         if self.game_state == 'addingPieces':
             b.add_piece(move, player)
@@ -74,6 +73,7 @@ class SantoriniGame(Game):
             return np.array(valids)
         for x, y in legal_moves:
             valids[b.n*x+y]=1
+
         return np.array(valids)
 
     def getGameEnded(self, board, curPlayer):
@@ -116,23 +116,56 @@ class SantoriniGame(Game):
                     if board[x][y][3] == 1:
                         canonical_board[x][y][3] = 0
                         canonical_board[x][y][1] = 1
-
-        game_state_array = [0] * 50
-        if self.selected_piece is not None:
-            x, y = self.selected_piece
-            if self.game_state == 'movingPiece':
-                game_state_array[n*x+y] = 1
-            elif self.game_state == 'building':
-                game_state_array[n*x+y+25] = 1
-
-        full_canonical_board = []
+        
         for x in range(n):
-            full_canonical_row = []
             for y in range(n):
-                full_canonical_row.append(np.concatenate((canonical_board[x][y], game_state_array), axis=0))
-            full_canonical_board.append(full_canonical_row)
+                for idx in range(9,59):
+                    canonical_board[x][y][idx] = 0
 
-        return full_canonical_board
+                if self.selected_piece is not None:
+                    x, y = self.selected_piece
+                    if self.game_state == 'movingPiece':
+                        canonical_board[x][y][n*x+y+9] = 1
+                    elif self.game_state == 'building':
+                        canonical_board[x][y][n*x+y+34] = 1
+
+        return canonical_board
+
+    def getBoardInput(self, board, player=1):
+        return self.getCanonicalForm(board, player)
+
+    def getSymmetries(self, board, pi):
+        # mirror, rotational
+        assert(len(pi) == len(board)**2+1)  # 1 for pass
+        pi_board = np.reshape(pi[:-1], (len(board), len(board)))
+        l = []
+
+        for i in range(1, 5):
+            for j in [True, False]:
+                newB = np.rot90(board, i)
+                newPi = np.rot90(pi_board, i)
+                if j:
+                    newB = np.fliplr(newB)
+                    newPi = np.fliplr(newPi)
+                l += [(newB, list(newPi.ravel()) + [pi[-1]])]
+        return l
+
+    def getRandomSymmetry(self, board):
+        l = []
+
+        for i in range(1, 5):
+            for j in [True, False]:
+                newB = np.rot90(board, i)
+                if j:
+                    newB = np.fliplr(newB)
+                l += [newB]
+
+        idx = np.random.choice(8,1)
+        return l[idx[0]]
+
+
+    def stringRepresentation(self, board):
+        return board.tostring()
 
     @staticmethod
     def display(board):

@@ -1,4 +1,5 @@
 from collections import namedtuple
+import numpy as np
 
 WinState = namedtuple('WinState', 'is_ended winner')
 
@@ -11,7 +12,9 @@ class Board():
         # Create the empty board array
         self.pieces = [None]*self.n
         for i in range(self.n):
-            self.pieces[i] = [[0,0,0,0, 1,0,0,0,0]]*self.n  # P1M P1F P2M P2F     0H 1H 2H 3H 4H
+            square = np.zeros(59)
+            square[4] = 1
+            self.pieces[i] = [square]*self.n  # P1M P1F P2M P2F     0H 1H 2H 3H 4H
 
     # add [][] indexer syntax to the Board
     def __getitem__(self, index): 
@@ -20,14 +23,14 @@ class Board():
     def add_piece(self, move, curPlayer):
         x, y = move
         if curPlayer == 1:
-            if self._number_of_placed_pieces() == 0:
+            if self._number_of_placed_pieces() < 2:
                 self[x][y][0] = 1
-            elif self._number_of_placed_pieces() == 2:
+            else:
                 self[x][y][1] = 1
         elif curPlayer == -1:
-            if self._number_of_placed_pieces() == 1:
+            if self._number_of_placed_pieces() < 2:
                 self[x][y][2] = 1
-            elif self._number_of_placed_pieces() == 3:
+            else:
                 self[x][y][3] = 1
 
     def move_piece(self, move, selectedPiece, curPlayer):

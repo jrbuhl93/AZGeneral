@@ -14,7 +14,7 @@ args = dotdict({
     'dirichletAlpha': 1.0,     # α = {0.3, 0.15, 0.03} for chess, shogi and Go respectively, scaled in inverse proportion to the approximate number of legal moves in a typical position
     'checkpoint': './temp/',
     'checkpoint_filename': 'best',
-    'load_model': True,
+    'load_model': False,
     'load_folder_file': ('./temp/','best'),
     'numItersForTrainExamplesHistory': 20,
 
