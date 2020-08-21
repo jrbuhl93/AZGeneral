@@ -34,7 +34,7 @@ class SantoriniNNet(Model):
         #   s: batch_size x board_x x board_y
 
         #   batch_size x board_x x board_y x 2
-        s = tf.reshape(s, shape=(-1, self.board_x, self.board_y, 59))
+        s = tf.reshape(s, shape=(-1, self.board_x, self.board_y, 11))
 
         s = ReLU()(self.bnInput(self.convInput(s), training))
 

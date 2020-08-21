@@ -67,7 +67,10 @@ class MCTS():
 
         counts = [x**(1./temp) for x in counts]
         counts_sum = float(sum(counts))
-        probs = [x/counts_sum for x in counts]
+        if counts_sum == 0:
+            probs = [1/len(counts)] * len(counts)
+        else:
+            probs = [x/counts_sum for x in counts]
         return probs
 
     def search(self, canonicalBoard, dirichlet_noise=False):
@@ -93,7 +96,10 @@ class MCTS():
             self.Es[s] = self.game.getGameEnded(canonicalBoard, 1)
         if self.Es[s]!=0:
             # terminal node
-            return -self.Es[s]
+            if self.game.isPreviousMoveOpponent(canonicalBoard):
+                return -self.Es[s]
+            else:
+                return self.Es[s]
 
         if s not in self.Ps:
             # leaf node
@@ -118,7 +124,10 @@ class MCTS():
 
             self.Vs[s] = valids
             self.Ns[s] = 0
-            return -v
+            if self.game.isPreviousMoveOpponent(canonicalBoard):
+                return -v
+            else:
+                return v
 
         valids = self.Vs[s]
         if dirichlet_noise:
@@ -155,7 +164,10 @@ class MCTS():
             self.Nsa[(s,a)] = 1
 
         self.Ns[s] += 1
-        return -v
+        if self.game.isPreviousMoveOpponent(canonicalBoard):
+            return -v
+        else:
+            return v
 
     def applyDirNoise(self, s, valids):
         dir_values = np.random.dirichlet([self.args.dirichletAlpha] * np.count_nonzero(valids))

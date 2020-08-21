@@ -7,11 +7,12 @@ from MCTS import MCTS
 
 from santorini.SantoriniGame import SantoriniGame
 from santorini.SantoriniPlayers import *
+from santorini.tensorflow.NNet import NNetWrapper as NNet
 
 import numpy as np
 from utils import *
 
-human_vs_cpu = True
+human_vs_cpu = False
 
 # g = Connect4Game()
 g = SantoriniGame()
@@ -23,30 +24,30 @@ rp = RandomSantoriniPlayer(g).play
 
 hp = HumanSantoriniPlayer(g).play
 
-player1 = rp
-player2 = rp
-
-# if human_vs_cpu:
-#     player2 = hp
-# else:
-#     n1 = NNet(g)
-#     n1.load_checkpoint('./temp/', 'best')
-#     args1 = dotdict({'numMCTSSims': 120, 'cpuct': 1.25})
-#     mcts1 = MCTS(g, n1, args1)
-#     n1p = lambda x: np.argmax(mcts1.getActionProb(x, temp=0))
-
-    # player1 = n1p  # Player 2 is neural network if it's cpu vs cpu.
-
-    # player1 = oslap
-
 # nnet players
-# n2 = NNet(g)
-# n2.load_checkpoint('./temp/', 'best')
-# args2 = dotdict({'numMCTSSims': 120, 'cpuct': 1.25})
-# mcts2 = MCTS(g, n2, args2, verbose=True)
-# n2p = lambda x: np.argmax(mcts2.getActionProb(x, temp=0))
+# n1 = NNet(g)
+# n1.load_checkpoint('./temp/', 'best')
+# args1 = dotdict({'numMCTSSims': 120, 'cpuct': 1.25})
+# mcts1 = MCTS(g, n1, args1, verbose=True)
+# n1p = lambda x: np.argmax(mcts1.getActionProb(x, temp=0))
 
-# player1=n2p
+# player1=n1p
+
+player1 = rp
+
+if human_vs_cpu:
+    player2 = hp
+else:
+    # n2 = NNet(g)
+    # n2.load_checkpoint('./temp/', 'best')
+    # args2 = dotdict({'numMCTSSims': 120, 'cpuct': 1.25})
+    # mcts2 = MCTS(g, n2, args2, verbose=True)
+    # n2p = lambda x: np.argmax(mcts2.getActionProb(x, temp=0))
+
+    # player2 = n2p  # Player 2 is neural network if it's cpu vs cpu.
+
+    # player2 = oslap
+    player2 = rp
 
 # Not Parallelized Arena
 arena = Arena.Arena(player1, player2, g, display=SantoriniGame.display)

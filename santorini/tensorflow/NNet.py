@@ -104,7 +104,7 @@ class NNetWrapper(NeuralNet):
         start = time.time()
 
         # preparing input
-        board = tf.reshape(board, shape=(1, self.board_x, self.board_y, 59))
+        board = tf.reshape(board, shape=(1, self.board_x, self.board_y, 11))
         pi, v = self.nnet(board, training=False)
 
         #print('PREDICTION TIME TAKEN : {0:03f}'.format(time.time()-start))

@@ -10,9 +10,6 @@ class SantoriniGame(Game):
     Santorini Game class implementing the alpha-zero-general Game interface.
     """
 
-    game_state = 'addingPieces'
-    selected_piece = None
-
     def __init__(self, size=5):
         Game.__init__(self)
         self._board = Board(size)
@@ -31,23 +28,19 @@ class SantoriniGame(Game):
         b.pieces = np.copy(board)
         move = (int(action/b.n), action%b.n)
 
-        if self.game_state == 'addingPieces':
+        game_state = self._get_game_state(b)
+
+        if game_state == 'addingPieces':
             b.add_piece(move, player)
-            if b.has_placed_all_pieces():
-                self.game_state = 'selectingPiece'
             return (b.pieces, -player)
-        elif self.game_state == 'selectingPiece':
-            self.selected_piece = move
-            self.game_state = 'movingPiece'
+        elif game_state == 'selectingPiece':
+            b.select_piece(move)
             return (b.pieces, player)
-        elif self.game_state == 'movingPiece':
-            b.move_piece(move, self.selected_piece, player)
-            self.selected_piece = move
-            self.game_state = 'building'
+        elif game_state == 'movingPiece':
+            b.move_piece(move, player)
             return (b.pieces, player)
-        elif self.game_state == 'building':
+        elif game_state == 'building':
             b.build(move)
-            self.game_state = 'selectingPiece'
             return (b.pieces, -player)
 
         return None
@@ -59,18 +52,21 @@ class SantoriniGame(Game):
         b = Board(len(board))
         b.pieces = np.copy(board)
 
-        if self.game_state == 'addingPieces':
+        game_state = self._get_game_state(b)
+
+        if game_state == 'addingPieces':
             legal_moves = b.get_legal_add_stone_moves(player)
-        elif self.game_state == 'selectingPiece':
+        elif game_state == 'selectingPiece':
             legal_moves = b.get_legal_select_piece_moves(player)
-        elif self.game_state == 'movingPiece':
-            legal_moves = b.get_legal_movement_moves(player, self.selected_piece)
-        elif self.game_state == 'building':
-            legal_moves = b.get_legal_build_moves(player, self.selected_piece)
+        elif game_state == 'movingPiece':
+            legal_moves = b.get_legal_movement_moves(player)
+        elif game_state == 'building':
+            legal_moves = b.get_legal_build_moves(player)
 
         if len(legal_moves)==0:
-            valids[-1]=1
-            return np.array(valids)
+            if game_state == 'building':
+                valids[-1]=1
+                return np.array(valids)
         for x, y in legal_moves:
             valids[b.n*x+y]=1
 
@@ -81,7 +77,6 @@ class SantoriniGame(Game):
         b.pieces = np.copy(board)
         winstate = b.get_win_state(curPlayer)
         if winstate.is_ended:
-            self.game_state = 'addingPieces'
             if winstate.winner is None:
                 # draw has very little value.
                 return 1e-4
@@ -116,18 +111,6 @@ class SantoriniGame(Game):
                     if board[x][y][3] == 1:
                         canonical_board[x][y][3] = 0
                         canonical_board[x][y][1] = 1
-        
-        for x in range(n):
-            for y in range(n):
-                for idx in range(9,59):
-                    canonical_board[x][y][idx] = 0
-
-                if self.selected_piece is not None:
-                    x, y = self.selected_piece
-                    if self.game_state == 'movingPiece':
-                        canonical_board[x][y][n*x+y+9] = 1
-                    elif self.game_state == 'building':
-                        canonical_board[x][y][n*x+y+34] = 1
 
         return canonical_board
 
@@ -148,6 +131,7 @@ class SantoriniGame(Game):
                     newB = np.fliplr(newB)
                     newPi = np.fliplr(newPi)
                 l += [(newB, list(newPi.ravel()) + [pi[-1]])]
+
         return l
 
     def getRandomSymmetry(self, board):
@@ -163,9 +147,34 @@ class SantoriniGame(Game):
         idx = np.random.choice(8,1)
         return l[idx[0]]
 
+    def isPreviousMoveOpponent(self, board):
+        b = Board(len(board))
+        b.pieces = np.copy(board)
+
+        game_state = self._get_game_state(b)
+
+        if game_state == 'addingPieces' or game_state == 'selectingPiece':
+            return True
+        else:
+            return False
 
     def stringRepresentation(self, board):
         return board.tostring()
+
+    def _get_game_state(self, board):
+        selected_piece = board._get_selected_piece()
+
+        if selected_piece is not None:
+            sx, sy = selected_piece
+            if board[sx][sy][9] == 1:
+                return 'movingPiece'
+            elif board[sx][sy][10] == 1:
+                return 'building'
+
+        if board.has_placed_all_pieces():
+            return 'selectingPiece'
+        else:
+            return 'addingPieces'
 
     @staticmethod
     def display(board):

@@ -12,7 +12,7 @@ class Board():
         # Create the empty board array
         self.pieces = [None]*self.n
         for i in range(self.n):
-            square = np.zeros(59)
+            square = np.zeros(11)
             square[4] = 1
             self.pieces[i] = [square]*self.n  # P1M P1F P2M P2F     0H 1H 2H 3H 4H
 
@@ -22,6 +22,11 @@ class Board():
 
     def add_piece(self, move, curPlayer):
         x, y = move
+        for idx in range(4):
+            if self[x][y][idx] == 1:
+                print("Very bad")
+                return
+
         if curPlayer == 1:
             if self._number_of_placed_pieces() < 2:
                 self[x][y][0] = 1
@@ -33,8 +38,13 @@ class Board():
             else:
                 self[x][y][3] = 1
 
-    def move_piece(self, move, selectedPiece, curPlayer):
-        ox, oy = selectedPiece
+    def select_piece(self, move):
+        mx, my = move
+
+        self[mx][my][9] = 1
+
+    def move_piece(self, move, curPlayer):
+        ox, oy = self._get_selected_piece()
         mx, my = move
 
         if curPlayer == 1:
@@ -52,12 +62,21 @@ class Board():
                 self[ox][oy][3] = 0
                 self[mx][my][3] = 1
 
+        self[ox][oy][9] = 0
+        self[mx][my][10] = 1
+
     def build(self, move):
         x, y = move
         square_height = self._get_square_height(move)
 
         self[x][y][square_height + 4] = 0
         self[x][y][square_height + 5] = 1
+
+        selected_piece = self._get_selected_piece()
+
+        if selected_piece is not None:
+            sx, sy = selected_piece
+            self[sx][sy][10] = 0
 
     def get_win_state(self, curPlayer):
         for player in [-1, 1]:
@@ -68,7 +87,7 @@ class Board():
                     return WinState(True, player)
 
         # no moves means loss
-        if not len(self.get_legal_moves(curPlayer)):
+        if len(self.get_legal_moves(curPlayer)) == 0:
             return WinState(True, -curPlayer)
 
         # Game is not ended yet.
@@ -101,7 +120,12 @@ class Board():
 
         return moves
 
-    def get_legal_movement_moves(self, curPlayer, selectedPiece):
+    def get_legal_movement_moves(self, curPlayer):
+        selected_piece = self._get_selected_piece()
+
+        return self._get_legal_movement_moves_for_piece(selected_piece)
+
+    def _get_legal_movement_moves_for_piece(self, selectedPiece):
         moves = set()
 
         adjacent_squares = self._get_adjacent_squares(selectedPiece)
@@ -112,10 +136,13 @@ class Board():
 
         return moves
 
-    def get_legal_build_moves(self, curPlayer, selectedPiece):
+
+    def get_legal_build_moves(self, curPlayer):
+        selected_piece = self._get_selected_piece()
+
         moves = set()
 
-        adjacent_squares = self._get_adjacent_squares(selectedPiece)
+        adjacent_squares = self._get_adjacent_squares(selected_piece)
 
         moves = self.filter_moves_by_piece_presence(adjacent_squares)
         moves = self.filter_moves_by_build_height(moves)
@@ -123,11 +150,19 @@ class Board():
         return moves
 
     def get_legal_moves(self, player):
-        if self._number_of_placed_pieces() == 4:
+        selected_piece = self._get_selected_piece()
+
+        if selected_piece is not None:
+            sx, sy = selected_piece
+            if self[sx][sy][9] == 1:
+                return self.get_legal_movement_moves(player)
+            elif self[sx][sy][10] == 1:
+                return self.get_legal_build_moves(player)
+
+        if self.has_placed_all_pieces():
             return self.get_legal_select_piece_moves(player)
         else:
             return self.get_legal_add_stone_moves(player)
-
 
     def _get_indices(self, player):
         switcher = {
@@ -211,7 +246,7 @@ class Board():
     def filter_select_piece_by_valid_moves(self, curPlayer, moves):
         filtered_moves = []
         for move in moves:
-            legal_movement_moves = self.get_legal_movement_moves(curPlayer, move)
+            legal_movement_moves = self._get_legal_movement_moves_for_piece(move)
             if len(legal_movement_moves) > 0:
                 filtered_moves.append(move)
 
@@ -255,3 +290,14 @@ class Board():
             if self[x][y][index] == 1:
                 return True
         return False
+
+    def _get_selected_piece(self):
+        for x in range(self.n):
+            for y in range(self.n):
+                if self[x][y][9] == 1:
+                    return (x,y)
+
+                if self[x][y][10] == 1:
+                    return [x,y]
+        
+        return None

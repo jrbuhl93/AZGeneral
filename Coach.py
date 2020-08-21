@@ -44,17 +44,19 @@ class Coach():
                 iterationTrainExamples = deque([], maxlen=self.args.maxlenOfQueue)
     
                 eps_time = AverageMeter()
-                bar = Bar('Self Play', max=int(self.args.numEps/4))
+                bar = Bar('Self Play', max=int(self.args.numEps/3))
                 end = time.time()
                 eps = 0
 
-                if not ray.is_initialized():
-                    ray.init(num_cpus=4)
+                auto_garbage_collect()
 
-                for eps_i in range(1, int(self.args.numEps/4) + 1):
+                if not ray.is_initialized():
+                    ray.init(num_cpus=3)
+
+                for eps_i in range(1, int(self.args.numEps/3) + 1):
                     if not ray.is_initialized():
-                        ray.init(num_cpus=4)
-                    epsObjects = [executeEpisode.remote(iteration=i, load_model=self.args.load_model, checkpoint=self.args.checkpoint, checkpoint_filename=self.args.checkpoint_filename, numMCTSSims=self.args.numMCTSSims, cpuct=self.args.cpuct, dirichletAlpha=self.args.dirichletAlpha, tempThreshold=self.args.tempThreshold) for _ in range(4)]
+                        ray.init(num_cpus=3)
+                    epsObjects = [executeEpisode.remote(iteration=i, load_model=self.args.load_model, checkpoint=self.args.checkpoint, checkpoint_filename=self.args.checkpoint_filename, numMCTSSims=self.args.numMCTSSims, cpuct=self.args.cpuct, dirichletAlpha=self.args.dirichletAlpha, tempThreshold=self.args.tempThreshold) for _ in range(3)]
                     epsResults = ray.get(epsObjects)
 
                     for epsResult in epsResults:
@@ -62,16 +64,20 @@ class Coach():
 
                     eps_time.update(time.time() - end)
                     end = time.time()
-                    eps += 4
+                    eps += 3
 
                     bar.suffix  = '({eps}/{maxeps}) Eps Time: {et:.3f}s | Total: {total:} | ETA: {eta:}'.format(eps=eps, maxeps=self.args.numEps, et=eps_time.avg,
                                                                                                                total=bar.elapsed_td, eta=bar.eta_td)
                     bar.next()
 
-                    if (eps_i % 5) == 0:
+                    if (eps_i % 3) == 0:
                         ray.shutdown()
+                        auto_garbage_collect()
 
+                ray.shutdown()
                 bar.finish()
+
+                auto_garbage_collect()
 
                 # save the iteration examples to the history 
                 self.trainExamplesHistory.append(iterationTrainExamples)
@@ -105,7 +111,7 @@ class Coach():
 
             print('PITTING AGAINST PREVIOUS VERSION')
             arena = Arena(lambda x: np.argmax(pmcts.getActionProb(x, temp=0)),
-                          lambda x: np.argmax(nmcts.getActionProb(x, temp=0)), self.game, display=Connect4Game.display)
+                          lambda x: np.argmax(nmcts.getActionProb(x, temp=0)), self.game, display=SantoriniGame.display)
             pwins, nwins, draws = arena.playGames(self.args.arenaCompare, verbose=True)
 
             print('NEW/PREV WINS : %d / %d ; DRAWS : %d' % (nwins, pwins, draws))
